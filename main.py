@@ -11,7 +11,7 @@ CHUNK_SIZE = 8
 CHUNK_LEFT_CONTEXT = 2
 
 
-def create_inference_process(q):
+def create_inference_process(q, mode="asr"):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -31,13 +31,13 @@ def create_inference_process(q):
         if chunk is None:  # Exit condition
             break
 
-        output = ""
+        # output = ""
 
         chunk = chunk.squeeze(-1).unsqueeze(0)
         words = asr_model.transcribe_chunk(context, chunk)
-        output += words[0]
+        # output += words[0]
 
-        print(output, end="", flush=True)
+        print(words[0], end="", flush=True)
 
 
 def main():
