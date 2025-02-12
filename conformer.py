@@ -3,8 +3,7 @@ import torchaudio
 import itertools
 from speechbrain.inference.ASR import StreamingASR, ASRStreamingContext
 from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
-from IPython.display import Audio
-import random
+
 import matplotlib.pyplot as plt
 
 
@@ -16,11 +15,11 @@ from vowel_files import vowel_files
 # 1. CONFIGURATION
 # -------------------------------
 
-CHUNK_SIZE = 4
-CHUNK_LEFT_CONTEXT = 4
-
 CHUNK_FRAMES = 639
 MODEL_SAMPLE_RATE = 16000
+CHUNK_SIZE = 8
+CHUNK_LEFT_CONTEXT = 2
+
 
 # -------------------------------
 # 2. STREAMING & ENCODING FUNCTIONS
@@ -93,6 +92,8 @@ def create_device_stream(q, format, src, segment_length, sample_rate):
             except Exception as e:
                 print(f"Error: {e}")
                 break
+    except KeyboardInterrupt:
+        print("Streaming interrupted.")
     finally:
         print("Sending termination signal...")
         q.put(None)  # Send shutdown signal
@@ -107,15 +108,20 @@ def create_inference_process(q):
         DynChunkTrainConfig(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
     )
 
+    print("Starting speaking...")
+
     while True:
         chunk = q.get()
         if chunk is None:  # Sentinel value to stop the process
             break
+        
+        output = ""
 
         chunk = chunk.squeeze(-1).unsqueeze(0)
         words = asr_model.transcribe_chunk(context, chunk)
-
-        print(words[0])
+        output += words[0]
+        
+        print(output, end="", flush=True)
 
 
 def main(device="avfoundation", src=":3"):
@@ -123,7 +129,6 @@ def main(device="avfoundation", src=":3"):
     chunk_size_frames = CHUNK_FRAMES * CHUNK_SIZE
     import torch.multiprocessing as mp
 
-    ctx = mp.get_context("spawn")
     ctx = mp.get_context("spawn")
     manager = ctx.Manager()
     q = manager.Queue()
