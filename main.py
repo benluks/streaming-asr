@@ -1,9 +1,9 @@
+from asr import load_asr_model
 from streaming import create_device_stream
-from speechbrain.inference.ASR import StreamingASR
 from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
 
-DEVICE = "avfoundation"  # Change for different devices
-SRC = ":3"  # Default MacBook microphone index
+DEVICE = "avfoundation"
+SRC = ":3"
 
 CHUNK_FRAMES = 639
 MODEL_SAMPLE_RATE = 16000
@@ -19,9 +19,7 @@ def create_inference_process(q):
         q (mp.Queue): Queue containing audio chunks.
         mode (str): Either "asr" for transcription or "encode" for encoding.
     """
-    asr_model = StreamingASR.from_hparams(
-        "speechbrain/asr-streaming-conformer-librispeech"
-    )
+    asr_model = load_asr_model()
     context = asr_model.make_streaming_context(
         DynChunkTrainConfig(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
     )
