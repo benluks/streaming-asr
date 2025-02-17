@@ -1,6 +1,6 @@
 # **Real-Time Speech Recognition with SpeechBrain**
 
-This project enables **real-time automatic speech recognition (ASR)** using **SpeechBrain** and **TorchAudio's StreamReader**. It supports both **live microphone streaming** and **file-based transcription**.
+This project enables **real-time automatic speech recognition (ASR)** using **SpeechBrain's [StreamingASR](https://speechbrain.readthedocs.io/en/latest/API/speechbrain.inference.ASR.html#speechbrain.inference.ASR.StreamingASR)** and **TorchAudio's [StreamReader](https://pytorch.org/audio/main/tutorials/streamreader_basic_tutorial.html)**. It supports both **live microphone streaming** and **file-based transcription**.
 
 ## **Features**
 - **Live ASR from Microphone**
@@ -27,7 +27,8 @@ python main.py
 ```
 
 This captures audio from your default microphone and transcribes it in real-time.
-You can modify `DEVICE` and `SRC` in main.py to match your system. Check [here] for `StreamReader` configurations.
+You can modify `DEVICE` and `SRC` in main.py to match your system. Check [here](git rm --cached <file_or_folder>
+) to learn about `StreamReader` configurations.
 
 ### File-Based Transcription
 
@@ -58,3 +59,7 @@ arecord -l
 ```
 
 Modify `SRC` and `DEVICE` in main.py accordingly.
+
+### `ffmpeg` requirements
+
+`torchaudio` has particular requirements for ffmpeg. You can read about that [here](https://pytorch.org/audio/main/installation.html#ffmpeg-dependency).
