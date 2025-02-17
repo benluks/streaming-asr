@@ -46,13 +46,19 @@ def create_device_stream(
         for (chunk,) in streamer.stream(timeout=-1):
             try:
                 q.put(chunk)
+            except KeyboardInterrupt:
+                q.put(chunk)
+                print("Streaming interrupted.")
+                break
             except StopIteration:
+                q.put(chunk)
                 print("Streaming interrupted.")
                 break
             except Exception as e:
                 print(f"Error in streaming: {e}")
                 break
     except KeyboardInterrupt:
+        q.put(chunk)
         print("Streaming interrupted.")
     finally:
         print("Sending termination signal...")

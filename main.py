@@ -3,7 +3,8 @@ from streaming import create_device_stream
 from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
 
 DEVICE = "avfoundation"
-SRC = ":3"
+SRC=":3"
+SAMPLE_FILE = "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/97/Spoken_Wikipedia_-_One_Times_Square.ogg/Spoken_Wikipedia_-_One_Times_Square.ogg.mp3"
 
 CHUNK_FRAMES = 639
 MODEL_SAMPLE_RATE = 16000
@@ -24,23 +25,20 @@ def create_inference_process(q, mode="asr"):
         DynChunkTrainConfig(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
     )
 
-    print("Starting speaking...")
+    print("Start speaking...")
 
     while True:
         chunk = q.get()
         if chunk is None:  # Exit condition
             break
 
-        # output = ""
-
         chunk = chunk.squeeze(-1).unsqueeze(0)
         words = asr_model.transcribe_chunk(context, chunk)
-        # output += words[0]
 
         print(words[0], end="", flush=True)
 
 
-def main():
+def main(src, format):
     """
     Main function to initialize streaming and ASR processes.
 
@@ -57,7 +55,7 @@ def main():
 
     capture_process = ctx.Process(
         target=create_device_stream,
-        args=(q, DEVICE, SRC, chunk_size_frames, MODEL_SAMPLE_RATE),
+        args=(q, format, src, chunk_size_frames, MODEL_SAMPLE_RATE),
     )
     capture_process.start()
 
@@ -73,11 +71,18 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Real-time ASR from Microphone")
     parser.add_argument(
-        "--mode",
-        choices=["asr", "encode"],
-        default="asr",
-        help="Choose ASR (transcription) or encoding mode",
+        "--file",
+        "-f",
+        type=str,
+        help="Path to an audio file for transcription. If omitted, defaults to live microphone input.",
     )
 
     args = parser.parse_args()
-    main()
+    if args.file:
+        src = args.file
+        format = None
+    else:
+        src = SRC
+        format = DEVICE
+
+    main(src, format)
