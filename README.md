@@ -2,7 +2,7 @@
 
 This project enables **real-time automatic speech recognition (ASR)** using **SpeechBrain** and **TorchAudio's StreamReader**. It supports both **live microphone streaming** and **file-based transcription**.
 
-## **🚀 Features**
+## **Features**
 - **Live ASR from Microphone**
 - **Transcription from an Audio File or URL**
 - **Streaming-based Processing for Low Latency**
