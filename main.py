@@ -1,9 +1,10 @@
 from asr import load_asr_model
 from streaming import create_device_stream
 from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
+from utils import resolve_src
 
 DEVICE = "avfoundation"
-SRC=":3"
+SRC=":4"
 SAMPLE_FILE = "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/97/Spoken_Wikipedia_-_One_Times_Square.ogg/Spoken_Wikipedia_-_One_Times_Square.ogg.mp3"
 
 CHUNK_FRAMES = 639
@@ -12,7 +13,7 @@ CHUNK_SIZE = 8
 CHUNK_LEFT_CONTEXT = 2
 
 
-def create_inference_process(q, mode="asr"):
+def create_inference_process(q):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -71,18 +72,24 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Real-time ASR from Microphone")
     parser.add_argument(
-        "--file",
-        "-f",
+        "--src",
+        "-s",
         type=str,
-        help="Path to an audio file for transcription. If omitted, defaults to live microphone input.",
+        help="Input source. Can be a file, URL, or device index (:[INT]).",
+        default=":3",
     )
 
     args = parser.parse_args()
-    if args.file:
-        src = args.file
-        format = None
-    else:
-        src = SRC
-        format = DEVICE
+    if args.src:
+        src_type = resolve_src(args.src)
+        if not src_type:
+            raise ValueError("Invalid source type. ")
+        else:
+            src = args.src
+            src = args.src
+            format = DEVICE if src_type == "device" else None
+
+    src = SRC
+    format = DEVICE
 
     main(src, format)
