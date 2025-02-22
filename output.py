@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 SAMPLE_RATE = 44100
 CHUNK_SIZE = 1024
-CHANNELS = 1
+CHANNELS = 2
 
 SAMPLE_FILE = "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/97/Spoken_Wikipedia_-_One_Times_Square.ogg/Spoken_Wikipedia_-_One_Times_Square.ogg.mp3"
 SAMPLE_FILE = "https://upload.wikimedia.org/wikipedia/commons/e/e5/%22The_Storming_of_El_Caney%22_by_Russell_Alexander.wav"
@@ -43,15 +43,15 @@ def main(file_path):
 
 if __name__ == "__main__":
 
-    # parser = ArgumentParser(description="Real-time output streaming from file")
-    # parser.add_argument(
-    #     "file_path",
-    #     "-f",
-    #     type=str,
-    #     required=False,
-    #     help="Path to the audio file",
-    #     default=SAMPLE_FILE,
-    # )
-    # args = parser.parse_args()
+    parser = ArgumentParser(description="Real-time output streaming from file")
+    parser.add_argument(
+        "-i",
+        "--input_path",
+        nargs="?",
+        type=str,
+        default=SAMPLE_FILE,
+        help="Path to the audio file or url",
+    )
+    args = parser.parse_args()
 
-    main(SAMPLE_FILE)
+    main(args.input_path)
