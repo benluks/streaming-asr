@@ -45,10 +45,11 @@ def create_playback_process(q, model_sample_rate, chunk_size, model_channels):
         blocksize=chunk_size,
         channels=model_channels,
         callback=audio_callback,
-    ):
+        dtype="float32",
+    ) as out_stream:
         print("Playing audio...")
         while True:
-            try:    
+            try:
                 chunk = q.get()
                 audio_queue.put(chunk)
             except KeyboardInterrupt:
@@ -100,7 +101,11 @@ def main(src, format, output, task, model_path, model_sr, model_channels):
     Args:
         mode (str): "asr" for full transcription or "encode" for feature extraction.
     """
-    chunk_size_frames = CHUNK_FRAMES * CHUNK_SIZE
+
+    if task == "asr":
+        chunk_size_frames = CHUNK_FRAMES * CHUNK_SIZE
+    else:
+        chunk_size_frames = 256
 
     import torch.multiprocessing as mp
 
@@ -124,10 +129,6 @@ def main(src, format, output, task, model_path, model_sr, model_channels):
     capture_process.start()
 
     if output:
-        if task == "dummy":
-            model_sr = 44100
-            model_channels = 2
-
         playback_queue = manager.Queue()
         playback_process = ctx.Process(
             target=create_playback_process,
