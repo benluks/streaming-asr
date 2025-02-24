@@ -6,14 +6,14 @@ CHUNK_SIZE = 8  # Adjust for different chunk durations
 CHUNK_LEFT_CONTEXT = 2  # Number of previous chunks used as context
 
 
-def load_asr_model() -> StreamingASR:
+def load_asr_model(model_path) -> StreamingASR:
     """
     Loads the SpeechBrain ASR streaming model.
 
     Returns:
         StreamingASR: Initialized ASR model.
     """
-    return StreamingASR.from_hparams("speechbrain/asr-streaming-conformer-librispeech")
+    return StreamingASR.from_hparams(model_path)
 
 
 def get_encoding(
@@ -54,3 +54,17 @@ def transcribe_chunk(
     """
     words = asr_model.transcribe_chunk(context, chunk)
     return words[0]
+
+
+def run_dummy_inference(chunk):
+    """
+    Dummy function to simulate inference.
+    """
+    return chunk
+
+
+def load_rave_model(model_path):
+    """
+    Loads a model from a file.
+    """
+    return torch.jit.load(model_path)

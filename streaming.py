@@ -23,7 +23,7 @@ def stream_audio_file(
 
 
 def create_device_stream(
-    q: mp.Queue, format: str, src: str, segment_length: int, sample_rate: int
+    q: mp.Queue, format: str, src: str, segment_length: int, sample_rate: int, num_channels: int
 ) -> None:
     """
     Captures audio from a device and pushes chunks into the queue.
@@ -40,7 +40,7 @@ def create_device_stream(
     try:
         streamer = StreamReader(src, format=format)
         streamer.add_basic_audio_stream(
-            frames_per_chunk=segment_length, sample_rate=sample_rate, num_channels=1
+            frames_per_chunk=segment_length, sample_rate=sample_rate, num_channels=num_channels
         )
 
         for (chunk,) in streamer.stream(timeout=-1):
