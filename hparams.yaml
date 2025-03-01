@@ -1,0 +1,5 @@
+model:
+  sample_rate: 16000
+  chunk_size: 8
+  chunk_left_context: 2
+  chunk_frames: 639

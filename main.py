@@ -1,10 +1,15 @@
-from asr import load_asr_model
+import logging
+
+logging.getLogger("speechbrain").setLevel(logging.WARNING)
+
+import torch
+from asr import transcribe, load_asr_model, transcribe_chunk
 from streaming import create_device_stream
-from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
 from utils import resolve_src
+from decoder import create_decoding_process
 
 DEVICE = "avfoundation"
-SRC=":4"
+SRC = ":3"
 SAMPLE_FILE = "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/97/Spoken_Wikipedia_-_One_Times_Square.ogg/Spoken_Wikipedia_-_One_Times_Square.ogg.mp3"
 
 CHUNK_FRAMES = 639
@@ -12,8 +17,10 @@ MODEL_SAMPLE_RATE = 16000
 CHUNK_SIZE = 8
 CHUNK_LEFT_CONTEXT = 2
 
+chunk_len = CHUNK_SIZE * CHUNK_FRAMES
 
-def create_inference_process(q):
+
+def create_inference_process(q, decoder_queue):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -21,10 +28,7 @@ def create_inference_process(q):
         q (mp.Queue): Queue containing audio chunks.
         mode (str): Either "asr" for transcription or "encode" for encoding.
     """
-    asr_model = load_asr_model()
-    context = asr_model.make_streaming_context(
-        DynChunkTrainConfig(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
-    )
+    asr_model, context = load_asr_model(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
 
     print("Start speaking...")
 
@@ -33,10 +37,13 @@ def create_inference_process(q):
         if chunk is None:  # Exit condition
             break
 
-        chunk = chunk.squeeze(-1).unsqueeze(0)
-        words = asr_model.transcribe_chunk(context, chunk)
+        with torch.no_grad():
+            chunk = chunk.squeeze(-1).unsqueeze(0).float()
+            # factory_words = transcribe_chunk(asr_model, context, chunk)
+            custom_words = transcribe(asr_model, context, chunk)
 
-        print(words[0], end="", flush=True)
+        # decoder_queue.put(logits)
+        print(custom_words, end="", flush=True)
 
 
 def main(src, format):
@@ -53,6 +60,7 @@ def main(src, format):
     ctx = mp.get_context("spawn")
     manager = ctx.Manager()
     q = manager.Queue()
+    decoding_queue = manager.Queue()
 
     capture_process = ctx.Process(
         target=create_device_stream,
@@ -60,8 +68,15 @@ def main(src, format):
     )
     capture_process.start()
 
-    inference_process = ctx.Process(target=create_inference_process, args=(q,))
+    inference_process = ctx.Process(
+        target=create_inference_process, args=(q, decoding_queue)
+    )
     inference_process.start()
+
+    # decoding_process = ctx.Process(
+    #     target=create_decoding_process, args=(decoding_queue,)
+    # )
+    # decoding_process.start()
 
     capture_process.join()
     inference_process.join()
@@ -76,7 +91,7 @@ if __name__ == "__main__":
         "-s",
         type=str,
         help="Input source. Can be a file, URL, or device index (:[INT]).",
-        default=":3",
+        default=SAMPLE_FILE,
     )
 
     args = parser.parse_args()
@@ -89,7 +104,7 @@ if __name__ == "__main__":
             src = args.src
             format = DEVICE if src_type == "device" else None
 
-    src = SRC
-    format = DEVICE
+    # src = SRC
+    # format = DEVICE
 
     main(src, format)
