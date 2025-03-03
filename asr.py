@@ -199,6 +199,6 @@ def transcribe(asr_model, context, chunk, chunk_len=None):
     chunk, chunk_len = chunk.to(asr_model.device), chunk_len.to(asr_model.device)
 
     x = asr_model.encode_chunk(context, chunk, chunk_len)
-    *_, words = decode_chunk(asr_model, context, x)
+    logits, _, words = decode_chunk(asr_model, context, x)
 
-    return words
+    return logits, words

@@ -20,7 +20,7 @@ CHUNK_LEFT_CONTEXT = 2
 chunk_len = CHUNK_SIZE * CHUNK_FRAMES
 
 
-def create_inference_process(q, decoder_queue):
+def create_inference_process(q, decoder_queue, chunk_frames):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -29,6 +29,8 @@ def create_inference_process(q, decoder_queue):
         mode (str): Either "asr" for transcription or "encode" for encoding.
     """
     asr_model, context = load_asr_model(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
+    chunk_start = 0
+    chunk_end = chunk_frames
 
     print("Start speaking...")
 
@@ -40,10 +42,15 @@ def create_inference_process(q, decoder_queue):
         with torch.no_grad():
             chunk = chunk.squeeze(-1).unsqueeze(0).float()
             # factory_words = transcribe_chunk(asr_model, context, chunk)
-            custom_words = transcribe(asr_model, context, chunk)
+            logits, words = transcribe(asr_model, context, chunk)
 
-        # decoder_queue.put(logits)
-        print(custom_words, end="", flush=True)
+        decoder_queue.put(
+            {"logits": logits, "words": words, "frames": (chunk_start, chunk_end)}
+        )
+
+        chunk_start = chunk_end
+        chunk_end += chunk_frames
+        # print(custom_words, end="", flush=True)
 
 
 def main(src, format):
@@ -73,10 +80,10 @@ def main(src, format):
     )
     inference_process.start()
 
-    # decoding_process = ctx.Process(
-    #     target=create_decoding_process, args=(decoding_queue,)
-    # )
-    # decoding_process.start()
+    decoding_process = ctx.Process(
+        target=create_decoding_process, args=(decoding_queue,)
+    )
+    decoding_process.start()
 
     capture_process.join()
     inference_process.join()

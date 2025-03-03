@@ -4,11 +4,12 @@ import urllib.parse
 
 is_device = lambda src: src.startswith(":") and src[1:].isdigit()
 
+
 def resolve_src(src):
-    
+
     if is_device(src):
         return "device"
-    
+
     src = src.strip()
     # Check if it's a local file
     if os.path.exists(src) or pathlib.Path(src).exists():
@@ -17,5 +18,10 @@ def resolve_src(src):
     parsed = urllib.parse.urlparse(src)
     if parsed.scheme in ("http", "https", "ftp"):
         return "url"
-    
+
     return None
+
+
+def read_vocab_file(file_path):
+    with open(file_path, "r") as f:
+        return f.read().splitlines()
