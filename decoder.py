@@ -13,7 +13,7 @@ def get_vocabulary(tokenizer):
 
 
 def build_decoder(
-    vocabulary,
+    vocabulary="lm/vocab.txt",
     kenlm_model_path="lm/3-gram.pruned.1e-7.binary",
     unigrams_path="lm/unigrams.txt",
     alpha=0.5,
@@ -33,7 +33,7 @@ def build_decoder(
 
 
 def create_decoding_process(
-    decoding_queue, chunk_frames, vocabulary="lm/vocab.txt", buffer_len=128
+    decoding_queue, chunk_size, vocabulary="lm/vocab.txt", buffer_len=32
 ):
     """
     Processes encodings from the queue and runs decoding.
@@ -43,7 +43,7 @@ def create_decoding_process(
     """
 
     assert (
-        buffer_len % chunk_frames == 0
+        buffer_len % chunk_size == 0
     ), "`buffer_len` must be a multiple of `chunk_frames`"
     
     decoder = build_decoder(vocabulary)
@@ -64,4 +64,4 @@ def create_decoding_process(
         buffer = buffer[-(min(buffer_len, buffer.shape[0])) :]
 
         words = decoder.decode(buffer.numpy())
-        print(words, end="", flush=True)
+        # print(words, end="", flush=True)

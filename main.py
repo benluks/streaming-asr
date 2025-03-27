@@ -20,7 +20,7 @@ CHUNK_LEFT_CONTEXT = 2
 chunk_len = CHUNK_SIZE * CHUNK_FRAMES
 
 
-def create_inference_process(q, decoder_queue, chunk_frames):
+def create_inference_process(q, decoder_queue, chunk_size=CHUNK_SIZE):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -30,7 +30,7 @@ def create_inference_process(q, decoder_queue, chunk_frames):
     """
     asr_model, context = load_asr_model(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
     chunk_start = 0
-    chunk_end = chunk_frames
+    chunk_end = chunk_size
 
     print("Start speaking...")
 
@@ -49,8 +49,9 @@ def create_inference_process(q, decoder_queue, chunk_frames):
         )
 
         chunk_start = chunk_end
-        chunk_end += chunk_frames
-        # print(custom_words, end="", flush=True)
+        chunk_end += chunk_size
+
+        print(words, end="", flush=True)
 
 
 def main(src, format):
@@ -81,7 +82,7 @@ def main(src, format):
     inference_process.start()
 
     decoding_process = ctx.Process(
-        target=create_decoding_process, args=(decoding_queue,)
+        target=create_decoding_process, args=(decoding_queue, CHUNK_SIZE)
     )
     decoding_process.start()
 

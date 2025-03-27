@@ -112,6 +112,7 @@ def get_logits_from_encoding(
 
     logits = torch.tensor([])
     prediction = []
+    prediction_frames = []
 
     # prepare BOS = Blank for the Prediction Network (PN)
     input_PN = (
@@ -150,6 +151,7 @@ def get_logits_from_encoding(
 
         if is_hyp_updated:
             prediction.append(predicted_idx.item())
+            prediction_frames.append(t_step)
             input_PN[0] = predicted_idx
             out_PN, hidden = decoder._forward_PN(
                 input_PN, decoder.decode_network_lst, hidden
@@ -157,21 +159,21 @@ def get_logits_from_encoding(
 
         logits = torch.cat((logits, log_probs.squeeze(1)), dim=1)
 
-    return logits, (out_PN, hidden), [prediction]
+    return logits, (out_PN, hidden), [prediction], [prediction_frames]
 
 
 def streaming_decode_step(
     asr_model, encoding, context: TransducerGreedySearcherStreamingContext
 ):
-    logits, hidden_state, prediction = get_logits_from_encoding(
+    logits, hidden_state, prediction, prediction_frames = get_logits_from_encoding(
         asr_model, encoding, context.hidden
     )
     context.hidden = hidden_state
-    return logits, prediction
+    return logits, prediction, prediction_frames
 
 
 def decode_chunk(asr_model, context, encoding):
-    logits, tokens = streaming_decode_step(asr_model, encoding, context.decoder_context)
+    logits, tokens, token_frames = streaming_decode_step(asr_model, encoding, context.decoder_context)
 
     # initialize token context for real now that we know the batch size
     if context.tokenizer_context is None:
