@@ -80,7 +80,10 @@ def main(src, format, task="asr", vowel=None):
         encoding = torch.tensor([])
         while not output_q.empty():
             encoding = torch.cat((encoding, output_q.get()), dim=1)
-        torch.save(encoding, f"{vowel}.pt")
+        
+        output_path = f"vowel_encodings/{vowel}.pt"
+        print(f"Saving encoding to {output_path}")
+        torch.save(encoding, output_path)
     
 
 
@@ -118,7 +121,6 @@ if __name__ == "__main__":
 
     from vowel_files import vowel_files
 
-    vowel, vowel_path = vowel_files[0]
-    
-    print(f"Vowel: {vowel}")
-    main(vowel_path, format, task="encode", vowel=vowel)
+    for vowel, vowel_path in vowel_files:    
+        print(f"Encoding vowel: {vowel}")
+        main(vowel_path, format, task="encode", vowel=vowel)
