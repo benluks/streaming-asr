@@ -1,4 +1,5 @@
-from asr import load_asr_model
+import torch
+from asr import load_asr_model, get_encoding
 from streaming import create_device_stream
 from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
 from utils import resolve_src
@@ -13,7 +14,7 @@ CHUNK_SIZE = 8
 CHUNK_LEFT_CONTEXT = 2
 
 
-def create_inference_process(q):
+def create_inference_process(q, task, output_q=None):
     """
     Processes audio chunks from the queue and runs ASR or encoding.
 
@@ -28,18 +29,26 @@ def create_inference_process(q):
 
     print("Start speaking...")
 
+    encoding = torch.tensor([])
+
+
     while True:
         chunk = q.get()
         if chunk is None:  # Exit condition
             break
 
         chunk = chunk.squeeze(-1).unsqueeze(0)
-        words = asr_model.transcribe_chunk(context, chunk)
+        if task == "asr":
+            words = asr_model.transcribe_chunk(context, chunk)
+            print(words[0], end="", flush=True)
+        elif task == "encode":
+            output = get_encoding(asr_model, context, chunk)
+            if output_q:
+                output_q.put(output)
 
-        print(words[0], end="", flush=True)
 
 
-def main(src, format):
+def main(src, format, task="asr", vowel=None):
     """
     Main function to initialize streaming and ASR processes.
 
@@ -53,6 +62,7 @@ def main(src, format):
     ctx = mp.get_context("spawn")
     manager = ctx.Manager()
     q = manager.Queue()
+    output_q = manager.Queue()
 
     capture_process = ctx.Process(
         target=create_device_stream,
@@ -60,11 +70,18 @@ def main(src, format):
     )
     capture_process.start()
 
-    inference_process = ctx.Process(target=create_inference_process, args=(q,))
+    inference_process = ctx.Process(target=create_inference_process, args=(q, task, output_q))
     inference_process.start()
 
     capture_process.join()
     inference_process.join()
+
+    if task == "encode":
+        encoding = torch.tensor([])
+        while not output_q.empty():
+            encoding = torch.cat((encoding, output_q.get()), dim=1)
+        torch.save(encoding, f"{vowel}.pt")
+    
 
 
 if __name__ == "__main__":
@@ -78,6 +95,13 @@ if __name__ == "__main__":
         help="Input source. Can be a file, URL, or device index (:[INT]).",
         default=":3",
     )
+    parser.add_argument(
+        "--task",
+        "-t",
+        type=str,
+        help="Task to perform: 'asr' for transcription, 'encode' for feature extraction.",
+        default="asr",
+    )
 
     args = parser.parse_args()
     if args.src:
@@ -90,6 +114,11 @@ if __name__ == "__main__":
             format = DEVICE if src_type == "device" else None
 
     src = SRC
-    format = DEVICE
+    format = None
 
-    main(src, format)
+    from vowel_files import vowel_files
+
+    vowel, vowel_path = vowel_files[0]
+    
+    print(f"Vowel: {vowel}")
+    main(vowel_path, format, task="encode", vowel=vowel)
