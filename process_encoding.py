@@ -72,7 +72,7 @@ def plot_encoding(encoding, lengths=None, labels=None):
     plt.show()
 
 
-def load_encodings_from_path(folder, use_relu=False):
+def load_encodings_from_path(folder, use_relu=False, only_keep_vowels=False):
 
     encodings = []
     lengths = []
@@ -81,6 +81,8 @@ def load_encodings_from_path(folder, use_relu=False):
     current_time = 0
 
     for encoding_path in Path(folder).glob("*.pt"):
+        if only_keep_vowels and (encoding_path.stem not in KEEP_VOWELS):
+            continue
         encoding = load_encoding(encoding_path, use_relu=use_relu)
         T = encoding.shape[1]
 
@@ -124,13 +126,25 @@ if __name__ == "__main__":
         help="Apply ReLU activation to the encoding.",
         default=False,
     )
+    parser.add_argument(
+        "--only_keep_vowels",
+        "-k",
+        action="store_true",
+        help="Only include common pulmonic vowels (listed in `KEEP_VOWELS`).",
+        default=False,
+    )
     args = parser.parse_args()
 
-    encodings, labels, lengths = load_encodings_from_path(args.encoding_path, args.relu)
+    encodings, labels, lengths = load_encodings_from_path(
+        args.encoding_path, args.relu, args.only_keep_vowels
+    )
 
     relu_in_name = "_relu" if args.relu else ""
+    keep_vowels_in_name = "_common" if args.only_keep_vowels else ""
+
     save_encodings_to_file(
-        Path(args.encoding_path) / f"vowel_encodings{relu_in_name}.pkl",
+        Path(args.encoding_path)
+        / f"vowel_encodings{keep_vowels_in_name}{relu_in_name}.pkl",
         encodings,
         labels,
         lengths,
