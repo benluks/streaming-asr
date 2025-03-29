@@ -22,11 +22,7 @@ def create_inference_process(q, task, output_q=None):
         q (mp.Queue): Queue containing audio chunks.
         mode (str): Either "asr" for transcription or "encode" for encoding.
     """
-    asr_model = load_asr_model()
-    context = asr_model.make_streaming_context(
-        DynChunkTrainConfig(CHUNK_SIZE, CHUNK_LEFT_CONTEXT)
-    )
-
+    asr_model, context = load_asr_model()
     print("Start speaking...")
 
     encoding = torch.tensor([])

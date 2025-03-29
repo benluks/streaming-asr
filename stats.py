@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 import seaborn as sns
+from torch.nn.functional import relu
 
 
 ENCDOING_FILE = "vowel_encodings/vowel_encodings.pkl"
@@ -21,6 +22,19 @@ def load_encoding(encoding_path):
     return X, labels, lengths
 
 
+def create_encoding_to_dict(encoding_path):
+
+    X, labels, lengths = load_encoding(encoding_path)
+
+    # Create a dictionary to store the encodings
+    encoding_dict = {}
+    start_idx = 0
+    for label, length in zip(labels, lengths):
+        encoding_dict[label] = X[start_idx : start_idx + length]
+        start_idx += length
+    return encoding_dict
+
+
 def run_pca(X, n_components=None):
     pca = PCA(n_components=n_components)
     pca.fit(X)
@@ -29,6 +43,29 @@ def run_pca(X, n_components=None):
     cumulative = np.cumsum(explained)
 
     return pca, cumulative
+
+
+from sklearn.manifold import TSNE
+
+
+def run_tsne(X_pca, n_components=2, starting_dims=50):
+    tsne = TSNE(
+        n_components=n_components,
+        perplexity=30,
+        learning_rate="auto",
+        init="pca",
+        # random_state=42,
+    )
+    X_tsne = tsne.fit_transform(X_pca[:, :starting_dims])
+    return X_tsne
+
+
+def get_label_ids(lengths):
+    """
+    Get label ids for the lengths of each vowel.
+    """
+    # Create a list of label ids for each vowel
+    return np.repeat(np.arange(len(lengths)), lengths)
 
 
 def plot_pairwise(X_pca, labels, lengths):
@@ -118,6 +155,28 @@ def plot_component_tracks(X_pca, labels, lengths, n_components=10, num_vowels=No
     plt.show()
 
 
+def plot_scatter(X, labels, lengths):
+    """
+    Scatter plot of the PCA data with labels.
+    Args:
+        X (ndarray): PCA or t-SNE data of shape [n_time_steps, n_components].
+        labels (list): List of labels for each point.
+        lengths (list): Lengths of each vowel.
+    """
+
+    label_ids = get_label_ids(lengths)
+
+    plt.figure(figsize=(10, 8))
+    sc = plt.scatter(X[:, 0], X[:, 1], c=label_ids, cmap="tab20", s=8, alpha=0.6)
+    cbar = plt.colorbar(sc, ticks=np.arange(len(labels)))
+    cbar.ax.set_yticklabels(labels)
+
+    plt.title("t-SNE of Vowel Embeddings")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_pca(cumulative):
     """
     Plot the PCA of the full dataset."
@@ -136,13 +195,61 @@ def plot_pca(cumulative):
     plt.show()
 
 
+def save_encoding_dict_to_file(output_file, object: dict):
+    """
+    Save the encodings to a file.
+    Args:
+        output_file (str): Path to the output file.
+        object (dict): Dictionary containing encodings indexed by vowel labels.
+    """
+    with open(output_file, "wb") as f:
+        pickle.dump(object, f)
+
+
+def scatter_specific_vowels(pca, vowels, encoding_dict_pickle, tsne=False, use_relu=False):
+    """
+    Arguments:
+    pca : PCA
+        PCA object fitted to the full dataset.
+    vowels : list
+        List of specific vowels to plot.
+    encoding_dict : dict
+        Dictionary containing encodings indexed by vowel labels.
+    """
+
+    with open(encoding_dict_pickle, "rb") as f:
+        encoding_dict = pickle.load(f)
+
+    # transform individual vowels
+    vowel_encodings = [encoding_dict[v] for v in vowels]
+    lengths = [v_enc.shape[0] for v_enc in vowel_encodings]
+
+
+    encodings_full = np.concatenate(vowel_encodings, axis=0)
+    if use_relu:
+        encodings_full = np.maximum(encodings_full, 0)
+
+    X_transformed = pca.transform(encodings_full)
+    
+    if tsne:
+        X_transformed = run_tsne(X_transformed, n_components=2, starting_dims=50)
+
+    plot_scatter(X_transformed, vowels, lengths)
+
+
 if __name__ == "__main__":
 
-    X, labels, lengths = load_encoding(
-        "vowel_encodings/vowel_encodings_common_relu.pkl"
+    all_encodings, labels, lengths = load_encoding(
+        "vowel_encodings/vowel_encodings_common.pkl"
     )
+    # run pca on all encodings
+    pca, cumulative = run_pca(all_encodings)
+    # tsne = run_tsne(pca, n_components=2, starting_dims=10)
+    scatter_specific_vowels(pca, ["i", "u"], "vowel_encodings/encoding_dict.pkl", tsne=True)
 
-    pca, cumulative = run_pca(X)
-    X_pca = pca.transform(X)
 
-    plot_component_tracks(X_pca, labels, lengths, n_components=10, num_vowels=1)
+    # plot_scatter(tsne, labels, lengths)
+    # # plot_component_tracks(X_pca, labels, lengths, n_components=10, num_vowels=1)
+
+    # encoding_dict = create_encoding_to_dict("vowel_encodings/vowel_encodings.pkl")
+    # save_encoding_dict_to_file("vowel_encodings/encoding_dict.pkl", encoding_dict)
