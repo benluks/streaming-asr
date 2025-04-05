@@ -9,7 +9,9 @@ from vowel_files import vowel_files
 from utils.io import KEEP_VOWELS
 
 
-def run_batch_encoding(output_path, relu=False, only_keep_vowels=False):
+def run_batch_encoding(
+    output_path, relu=False, only_keep_vowels=False, output_hidden_states=True
+):
     asr_model, context = load_asr_model()
     encodings = {}
 
@@ -23,22 +25,32 @@ def run_batch_encoding(output_path, relu=False, only_keep_vowels=False):
         processed = False
         while not processed:
             try:
-                output, hidden_states = batch_encode(
-                    asr_model, context, vowel_path, output_hidden_states=True
+                output = batch_encode(
+                    asr_model,
+                    context,
+                    vowel_path,
+                    output_hidden_states=output_hidden_states,
                 )
                 processed = True
             except RuntimeError:
                 print(f"Error fetching {vowel_label}, retrying in 10s...")
                 time.sleep(10)
 
+        if output_hidden_states:
+            output, hidden_states = output
+        else:
+            hidden_states = None
+
         if relu:
             output = torch.relu(output)
-            hidden_states = [torch.relu(h) for h in hidden_states]
+            if hidden_states:
+                hidden_states = [torch.relu(h) for h in hidden_states]
 
         encodings[vowel_label] = {
             "output": output,
-            "hidden_states": hidden_states,
         }
+        if hidden_states is not None:
+            encodings[vowel_label]["hidden_states"] = hidden_states
 
     print(f"Saving encodings to {output_path}")
     torch.save(encodings, output_path)
@@ -59,11 +71,16 @@ def encoding_dict_to_full_tensor(encoding_dict, only_keep_vowels=False, use_relu
 
         labels.append(key)
 
-        hidden_states = torch.cat(encoding_dict[key]["hidden_states"])
+        hidden_states = encoding_dict[key].get("hidden_states", None)
+        if hidden_states is not None:
+            hidden_states = torch.cat(hidden_states)
         output = encoding_dict[key]["output"]
 
-        lengths.append(hidden_states.shape[1])
-        vowel_encodings = torch.cat([hidden_states, output])
+        lengths.append(output.shape[1])
+
+        vowel_encodings = (
+            torch.cat([hidden_states, output]) if hidden_states is not None else output
+        )
         encodings = torch.cat([encodings, vowel_encodings], dim=1)
 
     return encodings.transpose(1, 2).numpy(), labels, lengths
@@ -104,14 +121,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.full_encoding:
-        run_batch_encoding(args.output, args.relu, args.only_keep_vowels)
+        run_batch_encoding(
+            args.output, args.relu, args.only_keep_vowels, args.hidden_states
+        )
     else:
         if not Path(args.encoding_dict_path).exists():
-            print("doesn't exist")
-            # just for now
-            exit()
+            print(
+                f"Encoding dictionary not found at {args.encoding_dict_path}. Creating encoding dictionary."
+            )
             encoding_dict = run_batch_encoding(
-                args.output, args.relu, args.only_keep_vowels
+                args.output, args.relu, args.only_keep_vowels, args.hidden_states
             )
         else:
             encoding_dict = torch.load(args.encoding_dict_path)
@@ -123,7 +142,7 @@ if __name__ == "__main__":
             use_relu=args.relu,
         )
         from utils.io import save_pickle
-        
+
         save_pickle(
             args.output,
             {
