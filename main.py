@@ -1,6 +1,6 @@
 import torch
 from asr.inference import create_inference_process
-from streaming import create_device_stream
+from asr.streaming import create_device_stream
 from utils import resolve_src
 
 DEVICE = "avfoundation"
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     src = SRC
     format = None
 
-    from vowel_files import vowel_files
+    from utils.vowel_files import vowel_files
 
     for vowel, vowel_path in vowel_files:    
         print(f"Encoding vowel: {vowel}")

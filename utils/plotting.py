@@ -1,8 +1,43 @@
 from typing import Union
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker
 import numpy as np
 
 from utils.stats import get_label_ids
+
+
+def plot_encoding(encoding, lengths=None, labels=None):
+    """
+    Plot the encoding of a batch of audio chunks.
+    Args:
+        encoding_path (str): Path to the encoding file.
+    """
+
+    plt.figure(figsize=(20, 8))
+    plt.imshow(encoding, aspect="auto", cmap="magma", interpolation="nearest")
+    plt.colorbar(label="Activation")
+    plt.xlabel("Time step")
+    plt.ylabel("Feature dimension")
+    plt.title("Conformer Encoder Output", pad=20)
+    plt.tight_layout()
+
+    if lengths:
+        boundaries = np.cumsum([0] + lengths)
+        # Draw vertical lines and labels
+        for i, b in enumerate(boundaries[:-1]):
+            plt.axvline(x=b, color="white", linestyle="--", linewidth=1)
+
+        # Add vowel labels
+        midpoints = [
+            (boundaries[i] + boundaries[i + 1]) // 2 for i in range(len(boundaries) - 1)
+        ]
+        for mid, label in zip(midpoints, labels):
+            plt.text(mid, -5, label, ha="center", va="bottom", fontsize=8, rotation=45)
+
+    # Optional: adjust ticks and layout
+    plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    plt.tight_layout()
+
+    plt.show()
 
 
 def plot_scatter(X, labels, lengths, reduction="PCA"):

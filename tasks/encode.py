@@ -5,7 +5,7 @@ import time
 import argparse
 import torch
 from asr.asr import load_asr_model, batch_encode
-from vowel_files import vowel_files
+from utils.vowel_files import vowel_files
 from utils.io import KEEP_VOWELS
 
 
