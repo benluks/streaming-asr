@@ -2,7 +2,13 @@ from typing import Union
 from matplotlib import pyplot as plt, ticker
 import numpy as np
 
-from utils.stats import get_label_ids
+
+def _get_label_ids(lengths):
+    """
+    Get label ids for the lengths of each vowel.
+    """
+    # Create a list of label ids for each vowel
+    return np.repeat(np.arange(len(lengths)), lengths)
 
 
 def plot_encoding(encoding, lengths=None, labels=None):
@@ -49,7 +55,7 @@ def plot_scatter(X, labels, lengths, reduction="PCA"):
         lengths (list): Lengths of each vowel.
     """
 
-    label_ids = get_label_ids(lengths)
+    label_ids = _get_label_ids(lengths)
 
     plt.figure(figsize=(10, 8))
     sc = plt.scatter(X[:, 0], X[:, 1], c=label_ids, cmap="tab20", s=8, alpha=0.6)
@@ -82,7 +88,7 @@ def plot_pca(cumulative):
 
 def plot_pca_pairwise(X_pca, labels, lengths, pc_count=10):
 
-    label_ids = get_label_ids(lengths)
+    label_ids = _get_label_ids(lengths)
 
     total_axes = pc_count * (pc_count - 1) // 2
     rows = pc_count - 1

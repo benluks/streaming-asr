@@ -18,7 +18,11 @@ def load_encodings_from_pkl(encodings_path):
 
     data = load_pickle(encodings_path)
 
-    X = data["encodings"].T
+    X = data["encodings"]
+
+    if X.ndim == 2:
+        X = X.T
+
     labels = data["labels"]
     lengths = data["lengths"]
 

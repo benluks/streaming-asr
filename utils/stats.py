@@ -25,9 +25,3 @@ def run_tsne(X_pca, n_components=2, starting_dims=50):
     return X_tsne
 
 
-def get_label_ids(lengths):
-    """
-    Get label ids for the lengths of each vowel.
-    """
-    # Create a list of label ids for each vowel
-    return np.repeat(np.arange(len(lengths)), lengths)
