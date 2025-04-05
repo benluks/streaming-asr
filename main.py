@@ -1,7 +1,6 @@
 import torch
-from asr import load_asr_model, get_encoding
+from asr.inference import create_inference_process
 from streaming import create_device_stream
-from speechbrain.utils.dynamic_chunk_training import DynChunkTrainConfig
 from utils import resolve_src
 
 DEVICE = "avfoundation"
@@ -12,36 +11,6 @@ CHUNK_FRAMES = 639
 MODEL_SAMPLE_RATE = 16000
 CHUNK_SIZE = 8
 CHUNK_LEFT_CONTEXT = 2
-
-
-def create_inference_process(q, task, output_q=None):
-    """
-    Processes audio chunks from the queue and runs ASR or encoding.
-
-    Args:
-        q (mp.Queue): Queue containing audio chunks.
-        mode (str): Either "asr" for transcription or "encode" for encoding.
-    """
-    asr_model, context = load_asr_model()
-    print("Start speaking...")
-
-    encoding = torch.tensor([])
-
-
-    while True:
-        chunk = q.get()
-        if chunk is None:  # Exit condition
-            break
-
-        chunk = chunk.squeeze(-1).unsqueeze(0)
-        if task == "asr":
-            words = asr_model.transcribe_chunk(context, chunk)
-            print(words[0], end="", flush=True)
-        elif task == "encode":
-            output = get_encoding(asr_model, context, chunk)
-            if output_q:
-                output_q.put(output)
-
 
 
 def main(src, format, task="asr", vowel=None):
