@@ -26,7 +26,9 @@ def load_encodings_from_pkl(encodings_path):
     labels = data["labels"]
     lengths = data["lengths"]
 
-    return X, labels, lengths
+    boundaries = np.cumsum([0] + lengths)
+
+    return X, labels, lengths, boundaries
 
 
 def create_encoding_dict(encoding_path):

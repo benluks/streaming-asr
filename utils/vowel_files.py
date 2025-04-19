@@ -132,3 +132,6 @@ vowel_files = [
         "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/31/PR-open_back_rounded_vowel.ogg/PR-open_back_rounded_vowel.ogg.mp3",
     ],
 ]
+
+
+vowel_files_dict = {vowel: url for vowel, url in vowel_files}
